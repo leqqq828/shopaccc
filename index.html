@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Acc Game Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-6 font-sans">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+
+        <!-- 1. THANH HEADER (HIỂN THỊ TÊN KHÁCH & SỐ DƯ) -->
+        <header class="bg-slate-800 p-4 rounded-xl flex justify-between items-center border border-slate-700">
+            <h1 class="text-xl font-bold text-amber-400">🔥 SHOP ACC GAME</h1>
+            
+            <!-- Chưa đăng nhập -->
+            <div id="login-box" class="flex gap-2">
+                <input id="input-username" type="text" placeholder="Nhập tên tài khoản..." class="bg-slate-900 border border-slate-600 text-sm rounded px-3 py-1 outline-none focus:border-amber-400">
+                <button onclick="login()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-1 rounded text-sm">Đăng nhập</button>
+            </div>
+
+            <!-- Đã đăng nhập -->
+            <div id="user-info" class="hidden flex items-center gap-4">
+                <span class="text-sm">Xin chào: <b id="user-name" class="text-amber-400">---</b></span>
+                <span class="bg-emerald-900/80 border border-emerald-500 text-emerald-300 text-xs px-3 py-1 rounded-full">Ví: <b id="user-balance">0</b>đ</span>
+                <button onclick="logout()" class="text-xs text-red-400 underline">Thoát</button>
+            </div>
+        </header>
+
+        <!-- 2. KHO ACC ĐANG BÁN (CHỈ HIỂN THỊ GIÁ, ẨN USER/PASS) -->
+        <section>
+            <h2 class="text-lg font-bold mb-3 border-l-4 border-amber-400 pl-2">🛒 Kho Nick Game Chiêu Mộ</h2>
+            <div id="shop-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Javascript sẽ tự bơm danh sách nick vào đây -->
+            </div>
+        </section>
+
+        <!-- 3. TỦ ĐỒ CỦA TÔI (NƠI XEM LẠI USER/PASS NICK ĐÃ MUA) -->
+        <section class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <h2 class="text-lg font-bold mb-3 border-l-4 border-emerald-400 pl-2 text-emerald-400">🎒 Tủ Đồ Của Tôi (Lịch Sử Mua)</h2>
+            <div id="inventory-list" class="space-y-2 text-sm text-slate-300">
+                <p class="text-slate-500 italic">Vui lòng đăng nhập để xem các nick bạn đã từng mua...</p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- CODE JAVASCRIPT XỬ LÝ TOÀN BỘ UI -->
+    <script>
+        // Data Kho Nick (Chờ mua)
+        let shopAccounts = [
+            { id: 1, title: 'Acc Liên Quân Full Tướng', price: 50000, user: 'acc_lienquan_vip', pass: 'MatKhauLQ123', sold: false },
+            { id: 2, title: 'Acc Free Fire M1014 Long Tộc', price: 30000, user: 'acc_freefire_pro', pass: 'MatKhauFF456', sold: false },
+            { id: 3, title: 'Acc Roblox Blox Fruit Max Lv', price: 20000, user: 'acc_roblox_999', pass: 'RobloxPass789', sold: false }
+        ];
+
+        let currentUser = null;
+
+        // --- 1. XỬ LÝ ĐĂNG NHẬP ---
+        function login() {
+            const name = document.getElementById('input-username').value.trim();
+            if (!name) return alert('Vui lòng nhập tên tài khoản!');
+            
+            currentUser = name;
+            
+            // Nếu là người dùng mới -> cho sẵn 100k test game
+            if (!localStorage.getItem(`balance_${currentUser}`)) {
+                localStorage.setItem(`balance_${currentUser}`, '100000');
+                localStorage.setItem(`inventory_${currentUser}`, JSON.stringify([]));
+            }
+
+            updateUI();
+        }
+
+        function logout() {
+            currentUser = null;
+            updateUI();
+        }
+
+        // --- 2. CẬP NHẬT GIAO DIỆN (UI) ---
+        function updateUI() {
+            const loginBox = document.getElementById('login-box');
+            const userInfo = document.getElementById('user-info');
+            
+            if (currentUser) {
+                loginBox.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                document.getElementById('user-name').innerText = currentUser;
+                document.getElementById('user-balance').innerText = Number(localStorage.getItem(`balance_${currentUser}`)).toLocaleString();
+            } else {
+                loginBox.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+            }
+
+            renderShop();
+            renderInventory();
+        }
+
+        // --- 3. IN DANH SÁCH ACC RA MÀN HÌNH ---
+        function renderShop() {
+            const shopDiv = document.getElementById('shop-list');
+            shopDiv.innerHTML = '';
+
+            shopAccounts.forEach(acc => {
+                shopDiv.innerHTML += `
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-amber-300">${acc.title}</h3>
+                            <p class="text-sm font-semibold text-white mt-1">Giá: ${acc.price.toLocaleString()} VNĐ</p>
+                        </div>
+                        <button onclick="buyAcc(${acc.id})" 
+                                class="${acc.sold ? 'bg-slate-600 cursor-not-allowed' : 'bg-amber-500 hover:bg-amber-600'} text-slate-950 font-bold px-4 py-2 rounded-lg text-sm"
+                                ${acc.sold ? 'disabled' : ''}>
+                            ${acc.sold ? 'Đã Bán' : 'Mua Ngay'}
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        // --- 4. HÀM MUA ACC & TRỪ TIỀN ---
+        function buyAcc(accId) {
+            if (!currentUser) return alert('Bạn chưa đăng nhập! Hãy gõ tên rồi bấm Đăng nhập ở trên đã.');
+
+            let balance = Number(localStorage.getItem(`balance_${currentUser}`));
+            let acc = shopAccounts.find(a => a.id === accId);
+
+            if (acc.sold) return alert('Nick này đã có người khác mua rồi!');
+            if (balance < acc.price) return alert('Ví không đủ tiền!');
+
+            // Trừ tiền & Cập nhật trạng thái acc
+            balance -= acc.price;
+            acc.sold = true;
+            localStorage.setItem(`balance_${currentUser}`, balance);
+
+            // Lưu User/Pass vào Tủ Đồ của riêng người dùng này
+            let myInventory = JSON.parse(localStorage.getItem(`inventory_${currentUser}`));
+            myInventory.push({
+                title: acc.title,
+                user: acc.user,
+                pass: acc.pass,
+                time: new Date().toLocaleTimeString('vi-VN')
+            });
+            localStorage.setItem(`inventory_${currentUser}`, JSON.stringify(myInventory));
+
+            alert(`🎉 Bấm Mua Thành Công!\nTài Khoản: ${acc.user}\nMật Khẩu: ${acc.pass}\n\n(Thông tin đã lưu vào Tủ Đồ phía dưới)`);
+            updateUI();
+        }
+
+        // --- 5. IN TỦ ĐỒ CỦA KHÁCH (HIỆN NICK/PASS) ---
+        function renderInventory() {
+            const invDiv = document.getElementById('inventory-list');
+            
+            if (!currentUser) {
+                invDiv.innerHTML = `<p class="text-slate-500 italic">Vui lòng đăng nhập để xem tủ đồ...</p>`;
+                return;
+            }
+
+            let myInventory = JSON.parse(localStorage.getItem(`inventory_${currentUser}`)) || [];
+
+            if (myInventory.length === 0) {
+                invDiv.innerHTML = `<p class="text-slate-500 italic">Tủ đồ trống. Bạn chưa mua acc nào!</p>`;
+                return;
+            }
+
+            invDiv.innerHTML = '';
+            myInventory.forEach((item, index) => {
+                invDiv.innerHTML += `
+                    <div class="bg-slate-900 p-3 rounded border border-emerald-800/60 flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-emerald-400">#${index + 1} ${item.title}</span>
+                            <div class="text-xs font-mono mt-1 text-slate-300">
+                                📌 TK: <b class="text-amber-300 select-all">${item.user}</b> | 🔑 MK: <b class="text-amber-300 select-all">${item.pass}</b>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-500">${item.time}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // Chạy lần đầu
+        updateUI();
+    </script>
+</body>
+</html>
